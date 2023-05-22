@@ -122,26 +122,33 @@ def handle_message(event):
         day_list = ["A月", "A火", "A水", "A木", "A金", "B月", "B火", "B水", "B木", "B金"]
         items = [QuickReplyButton(action = MessageAction(label = f"{day}", text = f"{day}曜日の時間割")) for day in day_list]
         reply_message = TextSendMessage(text = "何曜日の時間割かな？",quick_reply=QuickReply(items=items))
+
     elif event.message.text == 'テスト範囲':
         subject_list = ["英コミュ", "論理表現", "言語文化", "現代の国語", "今日", "明日"]
         items = [QuickReplyButton(action = MessageAction(label = f"{subject}", text = f"{subject}の小テスト範囲")) for subject in subject_list]
         reply_message = TextSendMessage(text = "何の範囲かな？",quick_reply=QuickReply(items=items))
+
     elif event.message.text == '課題':
         reply_message = TextSendMessage(text = "開発中ダヨ！ちょっとまってね！")
+
     elif event.message.text == 'ヘルプ':
         help_list = ["使用方法", "開発者"]
         items = [QuickReplyButton(action = MessageAction(label = f"{help}", text = f"{help}")) for help in help_list]
         reply_message = TextSendMessage(text = "ヘルプの種類は何かな？",quick_reply=QuickReply(items=items))
+
     elif event.message.text in lesson:
         reply_message = TextSendMessage(text = f"{event.message.text}\n① {lesson[event.message.text][0]}\n② {lesson[event.message.text][1]}\n③ {lesson[event.message.text][2]}\n④ {lesson[event.message.text][3]}\n⑤ {lesson[event.message.text][4]}")
+
     elif event.message.text in exam_range:
         ranges = []
         for key, value in exam_range[event.message.text].items():
             ranges.append(f"{key} {value}")
         range = '\n'.join(ranges)
         reply_message = TextSendMessage(text = f'{event.message.text}\n{range}')
+
     elif event.message.text in help_select:
         reply_message = TextSendMessage(text = f'{event.message.text}\n{help_select[event.message.text]}')
+
     elif event.message.text == '明日の小テスト範囲':
         day = f"{(datetime.datetime.now() + datetime.timedelta(days = 1)).month}月{(datetime.datetime.now() + datetime.timedelta(days = 1)).day}日"
         communication = exam_range["英コミュの小テスト範囲"].get(day) or "なし"
@@ -149,6 +156,7 @@ def handle_message(event):
         culture = exam_range["言語文化の小テスト範囲"].get(day) or "なし"
         modern_japanese = exam_range["現代の国語の小テスト範囲"].get(day) or "なし"
         reply_message = TextSendMessage(text = f'{day} の小テスト範囲\n【英コミュ】 {communication}\n【論理表現】 {expression}\n【言語文化】 {culture}\n【現代の国語】 {modern_japanese}')
+
     elif event.message.text == '今日の小テスト範囲':
         day = f"{datetime.datetime.now().month}月{datetime.datetime.now().day}日"
         communication = exam_range["英コミュの小テスト範囲"].get(day) or "なし"
@@ -156,6 +164,7 @@ def handle_message(event):
         culture = exam_range["言語文化の小テスト範囲"].get(day) or "なし"
         modern_japanese = exam_range["現代の国語の小テスト範囲"].get(day) or "なし"
         reply_message = TextSendMessage(text = f'{day} の小テスト範囲\n【英コミュ】 {communication}\n【論理表現】 {expression}\n【言語文化】 {culture}\n【現代の国語】 {modern_japanese}')
+
     elif event.message.text == 'admin':
         action_list = ["課題追加", "課題削除", "課題編集"]
         items = [QuickReplyButton(action = MessageAction(label = f"{action}", text = f"{action}")) for action in action_list]
