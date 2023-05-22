@@ -160,8 +160,6 @@ def handle_message(event):
         action_list = ["課題追加", "課題削除", "課題編集"]
         items = [QuickReplyButton(action = MessageAction(label = f"{action}", text = f"{action}")) for action in action_list]
         reply_message = TextSendMessage(text = "実行の種類を選択",quick_reply=QuickReply(items=items))
-    else:
-        reply_message = TextSendMessage(text = event.message.text)
 
     line_bot_api.reply_message(event.reply_token, messages=reply_message)
 
