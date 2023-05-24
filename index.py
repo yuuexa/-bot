@@ -73,6 +73,10 @@ exam_range = {
     }
 }
 
+class_changes = {
+    "5月26日": ["④ S.E.P(物理)", "公共"],
+}
+
 help_select = {
     "使用方法": "下のメニューのいずれかを押すことでそのコマンドにあった動作をしてくれるよ！",
     "開発者": "勿論陰キャパソ貫が開発してるよ！"
@@ -136,6 +140,14 @@ def handle_message(event):
         items = [QuickReplyButton(action = MessageAction(label = f"{help}", text = f"{help}")) for help in help_list]
         reply_message = TextSendMessage(text = "ヘルプの種類は何かな？",quick_reply=QuickReply(items=items))
 
+    elif event.message.text == 'お知らせ':
+        day = f"{datetime.datetime.now().month}月{datetime.datetime.now().day}日"
+
+        class_change = 'なし'
+        if class_changes.get(day) is not None:
+            class_change = f"{class_changes.get(day)[0]} → {class_changes.get(day)[1]}"
+        reply_message = TextSendMessage(text = f"{day}のお知らせ\n［ 授業変更 ］\n{class_change}\n\n")
+
     elif event.message.text in lesson:
         reply_message = TextSendMessage(text = f"{event.message.text}\n① {lesson[event.message.text][0]}\n② {lesson[event.message.text][1]}\n③ {lesson[event.message.text][2]}\n④ {lesson[event.message.text][3]}\n⑤ {lesson[event.message.text][4]}")
 
@@ -164,11 +176,6 @@ def handle_message(event):
         culture = exam_range["言語文化の小テスト範囲"].get(day) or "なし"
         modern_japanese = exam_range["現代の国語の小テスト範囲"].get(day) or "なし"
         reply_message = TextSendMessage(text = f'{day} の小テスト範囲\n【英コミュ】 {communication}\n【論理表現】 {expression}\n【言語文化】 {culture}\n【現代の国語】 {modern_japanese}')
-
-    elif event.message.text == 'admin':
-        action_list = ["課題追加", "課題削除", "課題編集"]
-        items = [QuickReplyButton(action = MessageAction(label = f"{action}", text = f"{action}")) for action in action_list]
-        reply_message = TextSendMessage(text = "実行の種類を選択",quick_reply=QuickReply(items=items))
 
     line_bot_api.reply_message(event.reply_token, messages=reply_message)
 
