@@ -148,13 +148,13 @@ def show_tasks():
     cursor.execute(sql)#executeコマンドでSQL文を実行
     conn.commit()#データベースにコミット(Excelでいう上書き保存。自動コミット設定なので不要だが一応・・)]
 
-    tomorrow = datetime.date.today() + datetime.timedelta(days=10)
-    cursor.execute(f'SELECT * FROM tasks WHERE ("{tomorrow.strftime("%m-%d")}" >= deadline >= "{datetime.date.today().strftime("%m-%d")}") ORDER BY deadline ASC')
+    after = datetime.date.today() + datetime.timedelta(days=10)
+    cursor.execute(f'SELECT * FROM tasks WHERE (deadline >= "{datetime.date.today().strftime("%m-%d")}" AND deadline <= "{after.strftime("%m-%d")}") ORDER BY deadline ASC')
     result = [dict(row) for row in cursor.fetchall()]
 
     tasks = []
     for i in result:
-        date = f'{i["deadline"].split("-")[0]}月{i["deadline"].split("-")[1]}'
+        date = f'{i["deadline"].split("-")[0]}月{i["deadline"].split("-")[1]}日'
         tasks.append(f'«{i["subject"]}» {i["name"]} {date}')
     return tasks
 
@@ -189,7 +189,7 @@ def show_news():
 
     news = []
     for i in result:
-        date = f'{i["date"].split("-")[0]}月{i["date"].split("-")[1]}'
+        date = f'{i["date"].split("-")[0]}月{i["date"].split("-")[1]}日'
         news.append(f'〈{i["type"]}〉 {i["body"]} {date}')
     return news
 
@@ -222,7 +222,7 @@ def handle_message(event):
     elif event.message.text == '課題':
         day = f"{datetime.datetime.now().month}月{datetime.datetime.now().day}日"
         after_day = f"{(datetime.datetime.now() + datetime.timedelta(days = 10)).month}月{(datetime.datetime.now() + datetime.timedelta(days = 10)).day}日"
-        tasks = '\n'.join(show_tasks())
+        tasks = '\n\n'.join(show_tasks())
         reply_message = TextSendMessage(text = f"{day}～{after_day} が期限の課題\n{tasks or 'なし'}")
 
     elif event.message.text == 'ヘルプ':
