@@ -151,9 +151,6 @@ def show_tasks():
     cursor.execute(f'SELECT * FROM tasks WHERE (deadline >= "{datetime.date.today().strftime("%m-%d")}") ORDER BY deadline ASC')
     result = [dict(row) for row in cursor.fetchall()]
 
-    print(f'{datetime.date.today().strftime("%m-%d")}')
-    print(result)
-
     tasks = []
     for i in result:
         tasks.append(f'【{i["subject"]}】 {i["name"]} {i["deadline"]}')
@@ -187,9 +184,6 @@ def show_news():
 
     cursor.execute(f'SELECT * FROM news WHERE (date >= "{datetime.date.today().strftime("%m-%d")}") ORDER BY date ASC')
     result = [dict(row) for row in cursor.fetchall()]
-
-    print(f'{datetime.date.today().strftime("%m-%d")}')
-    print(result)
 
     news = []
     for i in result:
