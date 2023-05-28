@@ -103,19 +103,127 @@ def callback():
 
     return 'OK'
 
+def fetch_data(database_name, table_name):
+    conn = sqlite3.connect(f'{database_name}.db')#データベースを作成、自動コミット機能ON
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor() #カーソルオブジェクトを作成
+
+    cursor.execute(f'SELECT * FROM {table_name}')
+    result = [dict(row) for row in cursor.fetchall()]
+    return result
+
 def message(event):
     #DB設定
     conn = sqlite3.connect('messages.db')#データベースを作成、自動コミット機能ON
     cursor = conn.cursor() #カーソルオブジェクトを作成
 
-    sql = """CREATE TABLE IF NOT EXISTS message(id, message)"""
+    sql = """CREATE TABLE IF NOT EXISTS message(id, display_name, message, date)"""
     cursor.execute(sql)#executeコマンドでSQL文を実行
     conn.commit()#データベースにコミット(Excelでいう上書き保存。自動コミット設定なので不要だが一応・・)]
 
-    sql = """INSERT INTO message VALUES(?, ?)"""#?は後で値を受け取るよという意味
+    sql = """INSERT INTO message VALUES(?, ?, ?, ?)"""#?は後で値を受け取るよという意味
 
-    data = ((event.source.user_id, event.message.text))#挿入するレコードを指定
+    profile = line_bot_api.get_profile(event.source.user_id)
+    data = ((event.source.user_id, profile.display_name, event.message.text, datetime.datetime.now().strftime('%Y年%m月%d日 %H:%M:%S')))#挿入するレコードを指定
     cursor.execute(sql, data)#executeコマンドでSQL文を実行
+    conn.commit()#コミットする
+
+# 課題関連
+def add_task(event, task_name, task_subject, task_deadline):
+    #DB設定
+    conn = sqlite3.connect('tasks.db')#データベースを作成、自動コミット機能ON
+    cursor = conn.cursor() #カーソルオブジェクトを作成
+
+    sql = """CREATE TABLE IF NOT EXISTS tasks(name, subject, deadline, author, id)"""
+    cursor.execute(sql)#executeコマンドでSQL文を実行
+    conn.commit()#データベースにコミット(Excelでいう上書き保存。自動コミット設定なので不要だが一応・・)]
+
+    sql = """INSERT INTO tasks VALUES(?, ?, ?, ?, ?)"""#?は後で値を受け取るよという意味
+
+    profile = line_bot_api.get_profile(event.source.user_id)
+    data = ((task_name, task_subject, task_deadline, profile.display_name, event.message.id))#挿入するレコードを指定
+    cursor.execute(sql, data)#executeコマンドでSQL文を実行
+    conn.commit()#コミットする
+
+def remove_task(id):
+    #DB設定
+    conn = sqlite3.connect('tasks.db')#データベースを作成、自動コミット機能ON
+    cursor = conn.cursor() #カーソルオブジェクトを作成
+
+    sql = """CREATE TABLE IF NOT EXISTS tasks(name, subject, deadline, author, id)"""
+    cursor.execute(sql)#executeコマンドでSQL文を実行
+    conn.commit()#データベースにコミット(Excelでいう上書き保存。自動コミット設定なので不要だが一応・・)]
+
+    cursor.execute(f"DELETE FROM tasks WHERE id = '{id}'")#executeコマンドでSQL文を実行
+    conn.commit()#コミットする
+
+def show_tasks():
+    conn = sqlite3.connect('tasks.db')#データベースを作成、自動コミット機能ON
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor() #カーソルオブジェクトを作成
+
+    sql = """CREATE TABLE IF NOT EXISTS tasks(name, subject, deadline, author, id)"""
+    cursor.execute(sql)#executeコマンドでSQL文を実行
+    conn.commit()#データベースにコミット(Excelでいう上書き保存。自動コミット設定なので不要だが一応・・)]
+
+    cursor.execute(f'SELECT * FROM tasks WHERE (deadline >= "{datetime.date.today().strftime("%m-%d")}") ORDER BY deadline ASC')
+    result = [dict(row) for row in cursor.fetchall()]
+
+    print(f'{datetime.date.today().strftime("%m-%d")}')
+    print(result)
+
+    tasks = []
+    for i in result:
+        tasks.append(f'【{i["subject"]}】 {i["name"]} {i["deadline"]}')
+    return tasks
+
+# お知らせ関連
+def add_news(event, type, body, date):
+    #DB設定
+    conn = sqlite3.connect('news.db')#データベースを作成、自動コミット機能ON
+    cursor = conn.cursor() #カーソルオブジェクトを作成
+
+    sql = """CREATE TABLE IF NOT EXISTS news(type, body, date, author, id)"""
+    cursor.execute(sql)#executeコマンドでSQL文を実行
+    conn.commit()#データベースにコミット(Excelでいう上書き保存。自動コミット設定なので不要だが一応・・)]
+
+    sql = """INSERT INTO news VALUES(?, ?, ?, ?, ?)"""#?は後で値を受け取るよという意味
+
+    profile = line_bot_api.get_profile(event.source.user_id)
+    data = ((type, body, date, profile.display_name, event.message.id))#挿入するレコードを指定
+    cursor.execute(sql, data)#executeコマンドでSQL文を実行
+    conn.commit()#コミットする
+
+def show_news():
+    conn = sqlite3.connect('news.db')#データベースを作成、自動コミット機能ON
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor() #カーソルオブジェクトを作成
+
+    sql = """CREATE TABLE IF NOT EXISTS news(type, body, date, author, id)"""
+    cursor.execute(sql)#executeコマンドでSQL文を実行
+    conn.commit()#データベースにコミット(Excelでいう上書き保存。自動コミット設定なので不要だが一応・・)]
+
+    cursor.execute(f'SELECT * FROM news WHERE (date >= "{datetime.date.today().strftime("%m-%d")}") ORDER BY date ASC')
+    result = [dict(row) for row in cursor.fetchall()]
+
+    print(f'{datetime.date.today().strftime("%m-%d")}')
+    print(result)
+
+    news = []
+    for i in result:
+        news.append(f'〈{i["type"]}〉 {i["body"]} {i["date"]}')
+    return news
+
+def remove_news(id):
+    #DB設定
+    conn = sqlite3.connect('news.db')#データベースを作成、自動コミット機能ON
+    cursor = conn.cursor() #カーソルオブジェクトを作成
+
+    sql = """CREATE TABLE IF NOT EXISTS news(type, body, date, author, id)"""
+    cursor.execute(sql)#executeコマンドでSQL文を実行
+    conn.commit()#データベースにコミット(Excelでいう上書き保存。自動コミット設定なので不要だが一応・・)]
+
+    cursor.execute(f"DELETE FROM news WHERE id = '{id}'")#executeコマンドでSQL文を実行
     conn.commit()#コミットする
 
 @handler.add(MessageEvent, message=TextMessage)
@@ -133,7 +241,9 @@ def handle_message(event):
         reply_message = TextSendMessage(text = "何の範囲かな？",quick_reply=QuickReply(items=items))
 
     elif event.message.text == '課題':
-        reply_message = TextSendMessage(text = "開発中ダヨ！ちょっとまってね！")
+        day = f"{datetime.datetime.now().month}月{datetime.datetime.now().day}日"
+        tasks = '\n'.join(show_tasks())
+        reply_message = TextSendMessage(text = f"{day} 以降の課題\n{tasks or 'なし'}")
 
     elif event.message.text == 'ヘルプ':
         help_list = ["使用方法", "開発者"]
@@ -142,11 +252,8 @@ def handle_message(event):
 
     elif event.message.text == 'お知らせ':
         day = f"{datetime.datetime.now().month}月{datetime.datetime.now().day}日"
-
-        class_change = 'なし'
-        if class_changes.get(day) is not None:
-            class_change = f"{class_changes.get(day)[0]} → {class_changes.get(day)[1]}"
-        reply_message = TextSendMessage(text = f"{day}のお知らせ\n［ 授業変更 ］\n{class_change}\n\n")
+        news = '\n'.join(show_news())
+        reply_message = TextSendMessage(text = f"{day} 以降のお知らせ\n{news or 'なし'}")
 
     elif event.message.text in lesson:
         reply_message = TextSendMessage(text = f"{event.message.text}\n① {lesson[event.message.text][0]}\n② {lesson[event.message.text][1]}\n③ {lesson[event.message.text][2]}\n④ {lesson[event.message.text][3]}\n⑤ {lesson[event.message.text][4]}")
@@ -176,6 +283,36 @@ def handle_message(event):
         culture = exam_range["言語文化の小テスト範囲"].get(day) or "なし"
         modern_japanese = exam_range["現代の国語の小テスト範囲"].get(day) or "なし"
         reply_message = TextSendMessage(text = f'{day} の小テスト範囲\n【英コミュ】 {communication}\n【論理表現】 {expression}\n【言語文化】 {culture}\n【現代の国語】 {modern_japanese}')
+
+    elif event.message.text.split(' ')[0] == ('課題追加' or '課題作成'):
+        task_name = event.message.text.split(' ')[1]
+        task_subject = event.message.text.split(' ')[2]
+        task_deadline = event.message.text.split(' ')[3]
+        add_task(event, task_name, task_subject, task_deadline)
+        reply_message = TextMessage(text = f'【{task_subject}】 の {task_name} を {task_deadline} までで追加しました。\n{event.message.id}')
+
+    elif event.message.text.split(' ')[0] == '課題削除':
+        task_id = event.message.text.split(' ')[1]
+        remove_task(task_id)
+        reply_message = TextMessage(text = f'課題 {task_id} を削除しました。')
+
+    elif event.message.text.split(' ')[0] == ('お知らせ追加' or 'お知らせ作成'):
+        news_type = event.message.text.split(' ')[1]
+        news_body = event.message.text.split(' ')[2]
+        news_date = event.message.text.split(' ')[3]
+        add_news(event, news_type, news_body, news_date)
+        reply_message = TextMessage(text = f'{news_date} の 【{news_type}】 {news_body} を追加しました。\n{event.message.id}')
+
+    elif event.message.text.split(' ')[0] == 'お知らせ削除':
+        news_id = event.message.text.split(' ')[1]
+        remove_news(news_id)
+        reply_message = TextMessage(text = f'お知らせ {news_id} を削除しました。')
+
+    elif event.message.text == 'コード':
+        reply_message = TextMessage(text = 'https://github.com/yuuexa/-bot')
+
+    else:
+        reply_message = TextMessage(text = event.message.text)
 
     line_bot_api.reply_message(event.reply_token, messages=reply_message)
 
