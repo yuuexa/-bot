@@ -17,12 +17,6 @@ app = Flask(__name__)
 line_bot_api = LineBotApi('RHR3qFBblPn555EsSqZw1r6Kig44qise/QjlhTzW8uadAYYxdorNZ0w+V3jQf0ntys71+nDx64ta6q1Qe2j10vgmFk5Jg4imxxmcVr4HXN6tKgjMEBA/8LwGLisuMX3JpWESWOqSKVEhKQDOF3sMSgdB04t89/1O/w1cDnyilFU=')
 handler = WebhookHandler('cfb1c2b56cca2a106552842d5a531863')
 
-admin_actions = {
-    "使用方法": "下のメニューのいずれかを押すことでそのコマンドにあった動作をしてくれるよ！",
-    "コード": "https://github.com/yuuexa/-bot",
-    "開発者": "勿論陰キャパソ貫が開発してるよ！"
-}
-
 lesson = {
     "A月曜日の時間割": ["エンジニアリング", "数学A", "S.E.B(生物)", "地理総合", "H.R."],
     "A火曜日の時間割": ["音楽", "現代の国語", "英語コミュニケーション", "数学A", "S.E.C(化学)"],
@@ -38,11 +32,10 @@ lesson = {
 
 exam_range = {
     "英コミュの小テスト範囲": {
-        "5月30日": "-",
-        "6月1日": "-",
-        "6月6日": "-",
-        "6月7日": "-",
-        "6月13日": "-",
+        "5月30日": "No222 - 340(書き)",
+        "6月1日": "No341 - 400",
+        "6月6日": "No401 - 455",
+        "6月7日": "No341 - 455(書き)",
     },
     "論理表現の小テスト範囲": {
         "5月23日": "No52 - 59",
@@ -65,21 +58,10 @@ exam_range = {
         "6月12日": "?"
     },
     "現代の国語の小テスト範囲": {
-        "5月30日": "-",
-        "6月1日": "-",
-        "6月6日": "-",
-        "6月13日": "-",
-        "6月15日": "-",
+        "5月30日": "p.38 - 41",
+        "6月1日": "p.42 - 45",
+        "6月6日": "全範囲(p.14 - 45)",
     }
-}
-
-class_changes = {
-    "5月26日": ["④ S.E.P(物理)", "公共"],
-}
-
-help_select = {
-    "使用方法": "下のメニューのいずれかを押すことでそのコマンドにあった動作をしてくれるよ！",
-    "開発者": "勿論陰キャパソ貫が開発してるよ！"
 }
 
 @app.route("/")
@@ -264,9 +246,6 @@ def handle_message(event):
             ranges.append(f"{key} {value}")
         range = '\n'.join(ranges)
         reply_message = TextSendMessage(text = f'{event.message.text}\n{range}')
-
-    elif event.message.text in help_select:
-        reply_message = TextSendMessage(text = f'{event.message.text}\n{help_select[event.message.text]}')
 
     elif event.message.text == '明日の小テスト範囲':
         day = f"{(datetime.datetime.now() + datetime.timedelta(days = 1)).month}月{(datetime.datetime.now() + datetime.timedelta(days = 1)).day}日"
