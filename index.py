@@ -1,6 +1,15 @@
+import os
 from flask import Flask, request, abort
-import sqlite3
-import datetime
+import config
+from datetime import datetime, timedelta
+import json
+from pathlib import Path
+
+#自作クラスの読み込み
+import Database
+import Utils
+Database = Database.Database()
+Utils = Utils.Utils()
 
 from linebot import (
     LineBotApi, WebhookHandler
@@ -9,38 +18,13 @@ from linebot.exceptions import (
     InvalidSignatureError
 )
 from linebot.models import (
-    MessageEvent, TextMessage, TextSendMessage, QuickReplyButton, MessageAction, QuickReply, FlexSendMessage
+    MessageEvent, TextMessage, TextSendMessage, ImageMessage, AudioMessage, QuickReplyButton, MessageAction, QuickReply, FlexSendMessage, TemplateSendMessage, CarouselTemplate, CarouselColumn
 )
 
 app = Flask(__name__)
 
-line_bot_api = LineBotApi('RHR3qFBblPn555EsSqZw1r6Kig44qise/QjlhTzW8uadAYYxdorNZ0w+V3jQf0ntys71+nDx64ta6q1Qe2j10vgmFk5Jg4imxxmcVr4HXN6tKgjMEBA/8LwGLisuMX3JpWESWOqSKVEhKQDOF3sMSgdB04t89/1O/w1cDnyilFU=')
-handler = WebhookHandler('cfb1c2b56cca2a106552842d5a531863')
-
-lesson = {
-    "A月曜日の時間割": ["エンジニアリング", "数学A", "S.E.B(生物)", "地理総合", "H.R."],
-    "A火曜日の時間割": ["音楽", "現代の国語", "英語コミュニケーション", "数学A", "S.E.C(化学)"],
-    "A水曜日の時間割": ["体育", "S.E.C(化学)", "言語文化", "数学Ⅰ", "ヴェリタスⅠ"],
-    "A木曜日の時間割": ["言語文化", "公共", "数学Ⅰ", "現代の国語", "英語コミュニケーション"],
-    "A金曜日の時間割": ["地理総合", "数学Ⅰ", "S.E.P(物理)", "論理表現", "保健"],
-    "B月曜日の時間割": ["公共", "言語文化", "S.E.B(生物)", "数学Ⅰ", "H.R."],
-    "B火曜日の時間割": ["英語コミュニケーション", "音楽", "体育", "数学A", "現代の国語"],
-    "B水曜日の時間割": ["数学Ⅰ", "英語コミュニケーション", "エンジニアリング", "S.E.P(物理)", "論理表現"],
-    "B木曜日の時間割": ["公共", "論理表現", "数学Ⅰ", "S.E.C(化学)", "S.E.B(生物)"],
-    "B金曜日の時間割": ["地理総合", "体育", "S.E.P(物理)", "保健", "音楽"],
-}
-
-admin = {
-    "課題追加": "[課題名] [教科] [期限]",
-    "課題作成": "[課題名] [教科] [期限]",
-    "課題削除": "[課題ID]",
-    "お知らせ追加": "[種類] [内容] [日付]",
-    "お知らせ作成": "[種類] [内容] [日付]",
-    "お知らせ削除": "[お知らせID]",
-    "テスト追加": "[範囲] [教科] [日付]",
-    "テスト作成": "[範囲] [教科] [日付]",
-    "テスト削除": "[テストID]",
-}
+line_bot_api = LineBotApi(config.ACCESS_TOKEN)
+handler = WebhookHandler(config.CHANNEL_SECRET)
 
 @app.route("/")
 def hello_world():
@@ -48,14 +32,10 @@ def hello_world():
 
 @app.route("/callback", methods=['POST'])
 def callback():
-    # get X-Line-Signature header value
     signature = request.headers['X-Line-Signature']
 
-    # get request body as text
     body = request.get_data(as_text=True)
     app.logger.info("Request body: " + body)
-
-    # handle webhook body
     try:
         handler.handle(body, signature)
     except InvalidSignatureError:
@@ -63,460 +43,411 @@ def callback():
 
     return 'OK'
 
-def fetch_data(database_name, table_name):
-    conn = sqlite3.connect(f'{database_name}.db')
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
-
-    date = 'date'
-    if database_name == 'messages':
-        table_name = 'message'
-    elif database_name == 'term_tests':
-        table_name = 'tests'
-    if database_name == 'term_tests':
-        date = 'subject'
-    elif database_name == 'tasks':
-        date = 'deadline'
-    cursor.execute(f'SELECT * FROM {table_name} ORDER BY "{date}" DESC LIMIT 30')
-    result = [dict(row) for row in cursor.fetchall()]
-    return result
-
-def message(event):
-    conn = sqlite3.connect('messages.db')
-    cursor = conn.cursor()
-
-    sql = """CREATE TABLE IF NOT EXISTS message(id, display_name, message, date)"""
-    cursor.execute(sql)
-    conn.commit()
-
-    sql = """INSERT INTO message VALUES(?, ?, ?, ?)"""
-
-    profile = line_bot_api.get_profile(event.source.user_id)
-    data = ((event.source.user_id, profile.display_name, event.message.text, datetime.datetime.now().strftime('%Y年%m月%d日 %H:%M:%S')))#挿入するレコードを指定
-    cursor.execute(sql, data)
-    conn.commit()
-
-def users(event):
-    conn = sqlite3.connect('users.db')
-    cursor = conn.cursor()
-
-    sql = """CREATE TABLE IF NOT EXISTS users(id primary key, display_name, avatar, banned, date)"""
-    cursor.execute(sql)
-    conn.commit()
-
-    sql = """INSERT INTO users VALUES(?, ?, ?, ?, ?) ON CONFLICT(id) DO NOTHING;"""
-
-    profile = line_bot_api.get_profile(event.source.user_id)
-    data = ((event.source.user_id, profile.display_name, profile.picture_url, 0, datetime.datetime.now().strftime('%Y年%m月%d日 %H:%M:%S')))#挿入するレコードを指定
-    cursor.execute(sql, data)
-    conn.commit()
-
-def find_user(user):
-    conn = sqlite3.connect('users.db')
-    cursor = conn.cursor()
-
-    sql = """CREATE TABLE IF NOT EXISTS users(id primary key, display_name, avatar, banned, date)"""
-    cursor.execute(sql)
-    conn.commit()
-
-    sql = f"""SELECT * FROM users WHERE display_name = "{user}";"""
-
-    cursor.execute(sql)
-    conn.commit()
-
-    user = cursor.fetchone()
-    return user
-
-def isAdmin(user_id):
-    conn = sqlite3.connect('users.db')
-    cursor = conn.cursor()
-
-    sql = """CREATE TABLE IF NOT EXISTS users(id primary key, display_name, avatar, banned, date)"""
-    cursor.execute(sql)
-    conn.commit()
-
-    sql = f"""SELECT * FROM users WHERE id = "{user_id}";"""
-
-    cursor.execute(sql)
-    conn.commit()
-
-    user = cursor.fetchone()
-    if user[0] == 'Ud713d7bf56b49d0f40c0712335f625ba':
-        user = True
-    else:
-        user = False
-    return user
-
-def banned_user(user_id):
-    conn = sqlite3.connect('users.db')
-    cursor = conn.cursor()
-
-    sql = """CREATE TABLE IF NOT EXISTS users(id primary key, display_name, avatar, banned, date)"""
-    cursor.execute(sql)
-    conn.commit()
-
-    sql = f"""SELECT * FROM users WHERE id = "{user_id}";"""
-
-    cursor.execute(sql)
-    conn.commit()
-
-    user = cursor.fetchone()
-    if user[3] == 1:
-        user = True
-    else:
-        user = False
-    return user
-
-def ban_user(user_id):
-    conn = sqlite3.connect('users.db')
-    cursor = conn.cursor()
-
-    sql = """CREATE TABLE IF NOT EXISTS users(id primary key, display_name, avatar, banned, date)"""
-    cursor.execute(sql)
-    conn.commit()
-
-    sql = f"""UPDATE users SET banned = 1 WHERE id = "{user_id}";"""
-
-    cursor.execute(sql)
-    conn.commit()
-
-def unban_user(user_id):
-    conn = sqlite3.connect('users.db')
-    cursor = conn.cursor()
-
-    sql = """CREATE TABLE IF NOT EXISTS users(id primary key, display_name, avatar, banned, date)"""
-    cursor.execute(sql)
-    conn.commit()
-
-    sql = f"""UPDATE users SET banned = 0 WHERE id = "{user_id}";"""
-
-    cursor.execute(sql)
-    conn.commit()
-
-# 課題関連
-def add_task(event, task_name, task_subject, task_deadline):
-    conn = sqlite3.connect('tasks.db')
-    cursor = conn.cursor()
-
-    sql = """CREATE TABLE IF NOT EXISTS tasks(name, subject, deadline, author, id)"""
-    cursor.execute(sql)
-    conn.commit()
-
-    sql = """INSERT INTO tasks VALUES(?, ?, ?, ?, ?)"""
-
-    profile = line_bot_api.get_profile(event.source.user_id)
-    data = ((task_name, task_subject, task_deadline, profile.display_name, event.message.id))#挿入するレコードを指定
-    cursor.execute(sql, data)
-    conn.commit()
-
-def remove_task(id):
-    conn = sqlite3.connect('tasks.db')
-    cursor = conn.cursor()
-
-    sql = """CREATE TABLE IF NOT EXISTS tasks(name, subject, deadline, author, id)"""
-    cursor.execute(sql)
-    conn.commit()
-
-    cursor.execute(f"DELETE FROM tasks WHERE id = '{id}'")
-    conn.commit()
-
-def show_tasks():
-    conn = sqlite3.connect('tasks.db')
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
-
-    sql = """CREATE TABLE IF NOT EXISTS tasks(name, subject, deadline, author, id)"""
-    cursor.execute(sql)
-    conn.commit()
-
-    after = datetime.date.today() + datetime.timedelta(days=10)
-    cursor.execute(f'SELECT * FROM tasks WHERE (deadline >= "{datetime.date.today().strftime("%m-%d")}" AND deadline <= "{after.strftime("%m-%d")}") ORDER BY deadline, name ASC')
-    result = [dict(row) for row in cursor.fetchall()]
-
-    tasks = []
-    for i in result:
-        date = f'{i["deadline"].split("-")[0]}月{i["deadline"].split("-")[1]}日'
-        tasks.append(f'«{i["subject"]}» {i["name"]} {date}')
-    return tasks
-
-# お知らせ関連
-def add_news(event, type, body, date):
-    conn = sqlite3.connect('news.db')
-    cursor = conn.cursor()
-
-    sql = """CREATE TABLE IF NOT EXISTS news(type, body, date, author, id)"""
-    cursor.execute(sql)
-    conn.commit()
-
-    sql = """INSERT INTO news VALUES(?, ?, ?, ?, ?)"""
-
-    profile = line_bot_api.get_profile(event.source.user_id)
-    data = ((type, body, date, profile.display_name, event.message.id))#挿入するレコードを指定
-    cursor.execute(sql, data)
-    conn.commit()
-
-def show_news():
-    conn = sqlite3.connect('news.db')
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
-
-    sql = """CREATE TABLE IF NOT EXISTS news(type, body, date, author, id)"""
-    cursor.execute(sql)
-    conn.commit()
-
-    cursor.execute(f'SELECT * FROM news WHERE (date >= "{datetime.date.today().strftime("%m-%d")}") ORDER BY date ASC')
-    result = [dict(row) for row in cursor.fetchall()]
-
-    news = []
-    for i in result:
-        date = f'{i["date"].split("-")[0]}月{i["date"].split("-")[1]}日'
-        news.append(f'〈{i["type"]}〉 {i["body"]} {date}')
-    return news
-
-def remove_news(id):
-    conn = sqlite3.connect('news.db')
-    cursor = conn.cursor()
-
-    sql = """CREATE TABLE IF NOT EXISTS news(type, body, date, author, id)"""
-    cursor.execute(sql)
-    conn.commit()
-
-    cursor.execute(f"DELETE FROM news WHERE id = '{id}'")
-    conn.commit()
-
-# テスト範囲関連
-def add_tests(event, range, subject, date):
-    if (date == '前期中間' or date == '前期期末' or date == '後期中間' or date == '後期期末'):
-        conn = sqlite3.connect('term_tests.db')
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-
-        sql = """CREATE TABLE IF NOT EXISTS tests(range, subject, type, author, id)"""
-        cursor.execute(sql)
-        conn.commit()
-
-        sql = """INSERT INTO tests VALUES(?, ?, ?, ?, ?)"""
-
-        profile = line_bot_api.get_profile(event.source.user_id)
-        data = ((range, subject, date, profile.display_name, event.message.id))#挿入するレコードを指定
-        cursor.execute(sql, data)
-        conn.commit()
-    else:
-
-        conn = sqlite3.connect('tests.db')
-        cursor = conn.cursor()
-
-        sql = """CREATE TABLE IF NOT EXISTS tests(range, subject, date, author, id)"""
-        cursor.execute(sql)
-        conn.commit()
-
-        sql = """INSERT INTO tests VALUES(?, ?, ?, ?, ?)"""
-
-        profile = line_bot_api.get_profile(event.source.user_id)
-        data = ((range, subject, date, profile.display_name, event.message.id))#挿入するレコードを指定
-        cursor.execute(sql, data)
-        conn.commit()
-
-def show_tests(subject):
-    conn = sqlite3.connect('tests.db')
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
-
-    sql = """CREATE TABLE IF NOT EXISTS tests(range, subject, date, author, id)"""
-    cursor.execute(sql)
-    conn.commit()
-
-    if (subject == '今日'):
-        cursor.execute(f'SELECT * FROM tests WHERE (date = "{datetime.date.today().strftime("%m-%d")}") ORDER BY date ASC')
-    elif (subject == '明日'):
-        tomorrow = datetime.date.today() + datetime.timedelta(days=1)
-        cursor.execute(f'SELECT * FROM tests WHERE (date = "{tomorrow.strftime("%m-%d")}") ORDER BY date ASC')
-    elif (subject == '前期中間' or subject == '前期期末' or subject == '後期中間' or subject == '後期期末'):
-        conn = sqlite3.connect('term_tests.db')
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-
-        sql = """CREATE TABLE IF NOT EXISTS tests(range, subject, type, author, id)"""
-        cursor.execute(sql)
-        conn.commit()
-
-        cursor.execute(f'SELECT * FROM tests WHERE type = "{subject}" ORDER BY subject, range ASC')
-    else:
-        cursor.execute(f'SELECT * FROM tests WHERE (subject = "{subject}" AND date >= "{datetime.date.today().strftime("%m-%d")}") ORDER BY date ASC')
-
-    result = [dict(row) for row in cursor.fetchall()]
-
-    tests = []
-
-    if subject == '今日' or subject == '明日' or subject == '前期中間' or subject == '前期期末' or subject == '後期中間' or subject == '後期期末':
-        for i in result:
-            tests.append(f'《{i["subject"]}》 {i["range"]}')
-    else:
-        for i in result:
-            date = f'{i["date"].split("-")[0]}月{i["date"].split("-")[1]}日'
-            tests.append(f'{date} {i["range"]}')
-    return tests
-
-def remove_tests(id):
-    conn = sqlite3.connect('tests.db')
-    cursor = conn.cursor()
-
-    sql = """CREATE TABLE IF NOT EXISTS tests(range, subject, date, author, id)"""
-    cursor.execute(sql)
-    conn.commit()
-
-    cursor.execute(f"DELETE FROM tests WHERE id = '{id}'")
-    conn.commit()
-
-def remove_term_tests(id):
-    conn = sqlite3.connect('term_tests.db')
-    cursor = conn.cursor()
-
-    sql = """CREATE TABLE IF NOT EXISTS tests(range, subject, date, author, id)"""
-    cursor.execute(sql)
-    conn.commit()
-
-    cursor.execute(f"DELETE FROM tests WHERE id = '{id}'")
-    conn.commit()
-
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
-    message(event)
-    users(event)
+    with open('./language.json', encoding="utf-8", mode="r") as f:
+        language = json.load(f)
 
-    if banned_user(event.source.user_id) and not isAdmin(event.source.user_id):
-        reply_message = TextSendMessage(text = "あなたは現在このbotを使用できません。")
-    else:
-        if event.message.text == '時間割':
-            day_list = ["A月", "A火", "A水", "A木", "A金", "B月", "B火", "B水", "B木", "B金"]
-            items = [QuickReplyButton(action = MessageAction(label = f"{day}", text = f"{day}曜日の時間割")) for day in day_list]
-            reply_message = TextSendMessage(text = "何曜日の時間割かな？",quick_reply=QuickReply(items=items))
+    profile = line_bot_api.get_profile(event.source.user_id)
+    if not Database.is_exist('users', 'user', f'id = "{event.source.user_id}"'):
+        Database.insert_data('users', 'user', '?, ?, ?, ?, ?, ?, ?, ?, ?', 'ON CONFLICT(id) DO NOTHING', (event.source.user_id, profile.display_name, profile.picture_url, 'G', datetime.now(), datetime.now(), 0, "日本語", 0))
+    message = event.message.text.split(' ')[0] or event.message.text
+    args = event.message.text.split(' ')
 
-        elif event.message.text == 'テスト範囲':
-            subject_list = ["英コミュ", "論理表現", "言語文化", "現代の国語", "今日", "明日", "前期中間", "前期期末", "後期中間", "後期期末"]
-            items = [QuickReplyButton(action = MessageAction(label = f"{test}", text = f"テスト範囲 {test}")) for test in subject_list]
-            reply_message = TextSendMessage(text = "何の範囲かな？",quick_reply=QuickReply(items=items))
+    author = Database.search_data('users', 'user', f'id = "{event.source.user_id}"')
+    user_lang = author[7]
+    Database.insert_data('messages', 'message', '?, ?, ?, ?, ?', '', (event.message.id, event.source.user_id, profile.display_name, event.message.text, datetime.now().strftime("%Y年%m月%d日 %H:%M:%S")))
 
-        elif (event.message.text.split(' ')[0] == ('テスト範囲')) and (event.message.text.split(' ')[1] is not None):
-            if event.message.text.split(' ')[1] == '今日':
-                test = '\n\n'.join(show_tests('今日')) or 'なし'
-                day = f"{datetime.datetime.now().month}月{datetime.datetime.now().day}日"
-                reply_message = TextMessage(text = f'{day} のテスト範囲\n{test}')
-            elif event.message.text.split(' ')[1] == '明日':
-                test = '\n\n'.join(show_tests('明日')) or 'なし'
-                day = f"{(datetime.datetime.now() + datetime.timedelta(days = 1)).month}月{(datetime.datetime.now() + datetime.timedelta(days = 1)).day}日"
-                reply_message = TextMessage(text = f'{day} のテスト範囲\n{test}')
-            elif event.message.text.split(' ')[1] == '前期中間' or event.message.text.split(' ')[1] == '前期期末' or event.message.text.split(' ')[1] == '後期中間' or event.message.text.split(' ')[1] == '後期期末':
-                test = '\n\n'.join(show_tests(event.message.text.split(' ')[1])) or 'なし'
-                day = f"{(datetime.datetime.now() + datetime.timedelta(days = 1)).month}月{(datetime.datetime.now() + datetime.timedelta(days = 1)).day}日"
-                reply_message = TextMessage(text = f'{event.message.text.split(" ")[1]}のテスト範囲\n{test}')
-            else:
-                day = f"{datetime.datetime.now().month}月{datetime.datetime.now().day}日"
-                test = '\n\n'.join(show_tests(event.message.text.split(' ')[1])) or 'なし'
-                reply_message = TextMessage(text = f'{day}以降の {event.message.text.split(" ")[1]}\n{test}')
-
-        elif event.message.text == '課題':
-            day = f"{datetime.datetime.now().month}月{datetime.datetime.now().day}日"
-            after_day = f"{(datetime.datetime.now() + datetime.timedelta(days = 10)).month}月{(datetime.datetime.now() + datetime.timedelta(days = 10)).day}日"
-            tasks = '\n\n'.join(show_tasks())
-            reply_message = TextSendMessage(text = f"{day}～{after_day} が期限の課題\n{tasks or 'なし'}")
-
-        elif event.message.text == 'ヘルプ':
-            help_list = ["使用方法", "開発者"]
-            items = [QuickReplyButton(action = MessageAction(label = f"{help}", text = f"{help}")) for help in help_list]
-            reply_message = TextSendMessage(text = "ヘルプの種類は何かな？",quick_reply=QuickReply(items=items))
-
-        elif event.message.text == 'お知らせ':
-            day = f"{datetime.datetime.now().month}月{datetime.datetime.now().day}日"
-            news = '\n'.join(show_news())
-            reply_message = TextSendMessage(text = f"{day} 以降のお知らせ\n{news or 'なし'}")
-
-        elif event.message.text in lesson:
-            reply_message = TextSendMessage(text = f"{event.message.text}\n① {lesson[event.message.text][0]}\n② {lesson[event.message.text][1]}\n③ {lesson[event.message.text][2]}\n④ {lesson[event.message.text][3]}\n⑤ {lesson[event.message.text][4]}")
-
-        elif event.message.text in admin:
-            reply_message = TextSendMessage(text = f'「{event.message.text}」の使用方法\n{admin[event.message.text]}')
-
-        elif event.message.text.split(' ')[0] == '課題追加' or event.message.text.split(' ')[0] == '課題作成':
-            task_name = event.message.text.split(' ')[1]
-            task_subject = event.message.text.split(' ')[2]
-            task_deadline = event.message.text.split(' ')[3]
-            add_task(event, task_name, task_subject, task_deadline)
-            reply_message = TextMessage(text = f'【{task_subject}】 の {task_name} を {task_deadline} までで追加しました。\n{event.message.id}')
-
-        elif event.message.text.split(' ')[0] == 'お知らせ追加' or event.message.text.split(' ')[0] == 'お知らせ作成':
-            news_type = event.message.text.split(' ')[1]
-            news_body = event.message.text.split(' ')[2]
-            news_date = event.message.text.split(' ')[3]
-            add_news(event, news_type, news_body, news_date)
-            reply_message = TextMessage(text = f'{news_date} の 【{news_type}】 {news_body} を追加しました。\n{event.message.id}')
-
-        elif event.message.text.split(' ')[0] == 'テスト追加' or event.message.text.split(' ')[0] == 'テスト作成':
-            test_range = event.message.text.split(' ')[1]
-            test_subject = event.message.text.split(' ')[2]
-            test_date = event.message.text.split(' ')[3]
-            add_tests(event, test_range, test_subject, test_date)
-            reply_message = TextMessage(text = f'{test_date}に{test_subject}のテスト{test_range}を追加しました。\n{event.message.id}')
-
-        elif event.message.text.split(' ')[0] == 'テスト削除':
-            test_id = event.message.text.split(' ')[1]
-            remove_news(test_id)
-            reply_message = TextMessage(text = f'テスト {test_id} を削除しました。')
-
-        elif event.message.text.split(' ')[0] == '大テスト削除':
-            test_id = event.message.text.split(' ')[1]
-            remove_term_tests(test_id)
-            reply_message = TextMessage(text = f'テスト {test_id} を削除しました。')
-
-        elif event.message.text.split(' ')[0] == 'お知らせ削除':
-            news_id = event.message.text.split(' ')[1]
-            remove_news(news_id)
-            reply_message = TextMessage(text = f'お知らせ {news_id} を削除しました。')
-
-        elif event.message.text.split(' ')[0] == '課題削除':
-            task_id = event.message.text.split(' ')[1]
-            remove_task(task_id)
-            reply_message = TextMessage(text = f'課題 {task_id} を削除しました。')
-
-        elif event.message.text == 'database':
-            db_list = ["messages", "news", "tasks", "term_tests", "tests", "users"]
-            items = [QuickReplyButton(action = MessageAction(label = f"{db}", text = f"database {db}")) for db in db_list]
-            reply_message = TextSendMessage(text = "表示するデータベースを選択",quick_reply=QuickReply(items=items))
-
-        elif event.message.text.split(' ')[0] == 'database':
-            db_name = event.message.text.split(' ')[1]
-            reply_message = TextMessage(text = f'{fetch_data(db_name, db_name)}')
-
-        elif event.message.text.split(' ')[0] == 'user':
-            user = event.message.text.split(' ')[1]
-            result = f'表示名: {find_user(user)[1]}\nID: {find_user(user)[0]}\n作成日: {find_user(user)[4]}' or 'なし'
-            reply_message = TextMessage(text = f'{result}')
-
-        elif event.message.text.split(' ')[0] == 'ユーザー禁止':
-            user_id = event.message.text.split(' ')[1]
-            if isAdmin(user_id):
-                reply_message = TextMessage(text = f'管理者のアカウントを指定してるよ？')
-            else:
-                ban_user(user_id)
-                profile = line_bot_api.get_profile(user_id)
-                reply_message = TextMessage(text = f'{profile.display_name} の使用を禁止しました。')
-
-        elif event.message.text.split(' ')[0] == 'ユーザー許可':
-            user_id = event.message.text.split(' ')[1]
-            if isAdmin(user_id):
-                reply_message = TextMessage(text = f'管理者のアカウントを指定してるよ？')
-            else:
-                unban_user(user_id)
-                profile = line_bot_api.get_profile(user_id)
-                reply_message = TextMessage(text = f'{profile.display_name} の使用禁止を解除しました。')
-
-        elif event.message.text == 'コード':
-            reply_message = TextMessage(text = 'https://github.com/yuuexa/-bot')
-
+    if message == '設定':
+        settings_list = ['クラス設定', '言語設定', '通知設定']
+        if len(args) == 1:
+            items = [QuickReplyButton(action = MessageAction(label = setting, text = setting)) for setting in settings_list]
+            user = Database.search_data('users', 'user', f'id = "{event.source.user_id}"')
+            createdAt = Utils.strptime(user[4]).strftime("%Y年%m月%d日 %H:%M")
+            reply_message = TextSendMessage(text = language["REGISTRATION_INFORMATION"][user_lang].format(profile.display_name, user[0], user[3], user[7], createdAt), quick_reply=QuickReply(items=items))
         else:
-            reply_message = TextMessage(text = event.message.text)
+            username = args[1]
+            if Database.is_exist('users', 'user', f'display_name = "{username}"'):
+                user = Database.search_data('users', 'user', f'display_name = "{username}"')
+                createdAt = Utils.strptime(user[4]).strftime("%Y年%m月%d日 %H:%M")
+                reply_message = TextSendMessage(text = language["REGISTRATION_INFORMATION"][user_lang].format(profile.display_name, user[0], user[3], user[7], createdAt))
+            else:
+                reply_message = TextSendMessage(text = language["NOT_EXIST"][user_lang])
 
-    line_bot_api.reply_message(event.reply_token, messages=reply_message)
+    elif message == 'クラス設定':
+        group_list = ['A', 'B', 'C', 'D', 'E', 'G', 'H', 'I']
+        if len(args) == 1:
+            items = [QuickReplyButton(action = MessageAction(label = group, text = f'クラス設定 {group}')) for group in group_list]
+            reply_message = TextSendMessage(text = language["CLASS_SELECTION"][user_lang], quick_reply=QuickReply(items=items))
+        else:
+            group = args[1]
+            if group in group_list:
+                Database.update_data('users', 'user', f'SET class = "{group}" WHERE id = "{event.source.user_id}"')
+                reply_message = TextSendMessage(text = language["CLASS_SETTING"][user_lang].format(group))
+            else:
+                reply_message = TextSendMessage(text = language["NOT_EXIST"][user_lang])
+
+    elif message == "言語設定":
+        language_list = ['日本語', 'English']
+        if len(args) == 1:
+            items = [QuickReplyButton(action = MessageAction(label = language, text = f'言語設定 {language}')) for language in language_list]
+            reply_message = TextSendMessage(text = language["LANGUAGE_SELECTION"][user_lang], quick_reply=QuickReply(items=items))
+        else:
+            if args[1] in language_list:
+                Database.update_data('users', 'user', f'SET language = "{args[1]}" WHERE id = "{event.source.user_id}"')
+                reply_message = TextSendMessage(text = language["LANGUAGE_SETTING"][user_lang].format(args[1]))
+            else:
+                reply_message = TextSendMessage(text = language["NOT_EXIST"][user_lang])
+
+    elif message == "通知設定":
+        notice_list = ['受け取る', '受け取らない']
+        if len(args) == 1:
+            items = [QuickReplyButton(action = MessageAction(label = notice, text = f'通知設定 {notice}')) for notice in notice_list]
+            reply_message = TextSendMessage(text = language["NOTICE_SELECTION"][user_lang], quick_reply=QuickReply(items=items))
+        else:
+            if args[1] in notice_list:
+                notice_boolean = 0
+                if args[1] == '受け取る':
+                    notice_boolean = 1
+                Database.update_data('users', 'user', f'SET notice = "{notice_boolean}" WHERE id = "{event.source.user_id}"')
+                reply_message = TextSendMessage(text = language["NOTICE_SETTING"][user_lang].format(args[1]))
+            else:
+                reply_message = TextSendMessage(text = language["NOT_EXIST"][user_lang])
+
+    elif message == "時間割設定":
+        if Utils.isAdmin(event.source.user_id):
+            day_list = ["A月", "A火", "A水", "A木", "A金", "B月", "B火", "B水", "B木", "B金"]
+            if args[2] in day_list and len(args) == 8:
+                if not Database.is_exist('timetable', 'timetable', f'(class = "{args[1]}" AND day = "{args[2]}")'):
+                    Database.insert_data('timetable', 'timetable', '?, ?, ?, ?, ?, ?, ?', '', (args[1], args[2], args[3], args[4], args[5], args[6], args[7]))
+                    reply_message = TextSendMessage(text = language["TIMETABLE"][user_lang].format(args[1], args[2], args[3], args[4], args[5], args[6], args[7]))
+            else:
+                reply_message = TextSendMessage(text = language["INVALID_ARGUMENT"][user_lang].format('時間割設定 [クラス] [曜日] [1時間目] ...'))
+        else:
+            reply_message = TextSendMessage(text = language["TIMETABLE_EDIT"][user_lang])
+
+    elif message == "テスト作成":
+        subject_list = ["数学", "生物", "化学", "物理", "英コミュ", "論理表現", "現代の国語", "言語文化"]
+        if len(args) == 2:
+            items = [QuickReplyButton(action = MessageAction(label = subject, text = f'テスト作成 {args[1]} {subject}')) for subject in subject_list]
+            reply_message = TextSendMessage(text = language["SUBJECT_SELECTION"][user_lang], quick_reply=QuickReply(items=items))
+        elif len(args) == 3 and args[2] in subject_list:
+            date_list = []
+            for i in range(11):
+                date = datetime.now() + timedelta(i)
+                date_list.append(date.strftime("%m月%d日"))
+            items = [QuickReplyButton(action = MessageAction(label = day, text = f'テスト作成 {args[1]} {args[2]} {day}')) for day in date_list]
+            reply_message = TextSendMessage(text = language["DATE_SELECTION"][user_lang], quick_reply=QuickReply(items=items))
+        elif len(args) == 4 and args[2] in subject_list:
+            time_list = ['なし']
+            for i in range(12):
+                time_list.append(f'{i * 2}:00')
+            items = [QuickReplyButton(action = MessageAction(label = time, text = f'テスト作成 {args[1]} {args[2]} {args[3]} {time}')) for time in time_list]
+            reply_message = TextSendMessage(text = language["TIME_SELECTION"][user_lang], quick_reply=QuickReply(items=items))
+        elif len(args) == 5 and args[2] in subject_list:
+            time = ' '
+            if not args[4] == 'なし':
+                time = args[4]
+            if not Database.is_exist('tests', 'test', f'(class = "{author[3]}" AND range = "{args[1]}" AND subject = "{args[2]}" AND date = "{args[3]}" AND time = "{time}")'):
+                Database.insert_data('tests', 'test', '?, ?, ?, ?, ?, ?', '', (author[3], args[1], args[2], args[3], time, event.source.user_id))
+                reply_message = TextSendMessage(text = language["CREATION_TEST"][user_lang].format(args[1], args[2], f'{args[3]} {time}'))
+            else:
+                reply_message = TextSendMessage(text = language["ALREADY_EXIST"][user_lang])
+        else:
+            reply_message = TextSendMessage(text = language["INVALID_ARGUMENT"][user_lang].format('テスト作成 [範囲]'))
+
+    elif message == "テスト編集":
+        subject_list = ["数学", "生物", "化学", "物理", "英コミュ", "論理表現", "現代の国語", "言語文化"]
+        if len(args) == 2:
+            items = [QuickReplyButton(action = MessageAction(label = subject, text = f'テスト編集 {args[1]} {subject}')) for subject in subject_list]
+            reply_message = TextSendMessage(text = language["SUBJECT_SELECTION"][user_lang], quick_reply=QuickReply(items=items))
+        elif len(args) == 3 and args[2] in subject_list:
+            date_list = []
+            for i in range(11):
+                date = datetime.now() + timedelta(i)
+                date_list.append(date.strftime("%m月%d日"))
+            items = [QuickReplyButton(action = MessageAction(label = day, text = f'テスト編集 {args[1]} {args[2]} {day}')) for day in date_list]
+            reply_message = TextSendMessage(text = language["DATE_SELECTION"][user_lang], quick_reply=QuickReply(items=items))
+        elif len(args) == 4 and args[2] in subject_list:
+            time_list = ['なし']
+            for i in range(12):
+                time_list.append(f'{i * 2}:00')
+            items = [QuickReplyButton(action = MessageAction(label = time, text = f'テスト編集 {args[1]} {args[2]} {args[3]} {time}')) for time in time_list]
+            reply_message = TextSendMessage(text = language["TIME_SELECTION"][user_lang], quick_reply=QuickReply(items=items))
+        elif len(args) == 5 and args[2] in subject_list:
+            time = ' '
+            if not args[4] == 'なし':
+                time = args[4]
+            if Database.is_exist('tests', 'test', f'(class = "{author[3]}" AND range = "{args[1]}")'):
+                Database.update_data('tests', 'test', f'SET subject = "{args[2]}", date = "{args[3]}", time = "{time}" WHERE (class = "{author[3]}" AND range = "{args[1]}")')
+                reply_message = TextSendMessage(text = language["UPDATE_TEST"][user_lang].format(args[1], args[2], f'{args[3]} {time}'))
+            else:
+                reply_message = TextSendMessage(text = language["NOT_EXIST"][user_lang])
+        else:
+            reply_message = TextSendMessage(text = language["INVALID_ARGUMENT"][user_lang].format('テスト編集 [範囲]'))
+
+    elif message == "テスト削除":
+        if Database.is_exist('tests', 'test', f'(class = "{author[3]}" AND range = "{args[1]}")'):
+            Database.delete_data('tests', 'test', f'(class = "{author[3]}" AND range = "{args[1]}")')
+            reply_message = TextSendMessage(text = language["DELETE_TASK"][user_lang].format(args[1]))
+        else:
+            reply_message = TextSendMessage(text = language["INVALID_ARGUMENT"][user_lang].format('課題編集 [課題名]'))
+
+    elif message == "課題作成":
+        subject_list = ["情報", "数学", "生物", "化学", "物理", "地理総合", "公共", "英コミュ", "論理表現", "現代の国語", "言語文化", "体育"]
+        if len(args) == 2:
+            items = [QuickReplyButton(action = MessageAction(label = subject, text = f'課題作成 {args[1]} {subject}')) for subject in subject_list]
+            reply_message = TextSendMessage(text = language["SUBJECT_SELECTION"][user_lang], quick_reply=QuickReply(items=items))
+        elif len(args) == 3 and args[2] in subject_list:
+            date_list = []
+            for i in range(11):
+                date = datetime.now() + timedelta(i)
+                date_list.append(date.strftime("%m月%d日"))
+            items = [QuickReplyButton(action = MessageAction(label = day, text = f'課題作成 {args[1]} {args[2]} {day}')) for day in date_list]
+            reply_message = TextSendMessage(text = language["DATE_SELECTION"][user_lang], quick_reply=QuickReply(items=items))
+        elif len(args) == 4 and args[2] in subject_list:
+            time_list = ['なし']
+            for i in range(12):
+                time_list.append(f'{i * 2}:00')
+            items = [QuickReplyButton(action = MessageAction(label = time, text = f'課題作成 {args[1]} {args[2]} {args[3]} {time}')) for time in time_list]
+            reply_message = TextSendMessage(text = language["TIME_SELECTION"][user_lang], quick_reply=QuickReply(items=items))
+        elif len(args) == 5 and args[2] in subject_list:
+            time = ' '
+            if not args[4] == 'なし':
+                time = args[4]
+            if not Database.is_exist('tasks', 'task', f'(class = "{author[3]}" AND name = "{args[1]}" AND subject = "{args[2]}" AND date = "{args[3]}" AND time = "{time}")'):
+                Database.insert_data('tasks', 'task', '?, ?, ?, ?, ?, ?', '', (author[3], args[1], args[2], args[3], time, event.source.user_id))
+                reply_message = TextSendMessage(text = language["CREATION_TASK"][user_lang].format(args[1], args[2], f'{args[3]} {time}'))
+            else:
+                reply_message = TextSendMessage(text = language["ALREADY_EXIST"][user_lang])
+        else:
+            reply_message = TextSendMessage(text = language["INVALID_ARGUMENT"][user_lang].format('課題作成 [課題名]'))
+
+    elif message == "課題編集":
+        subject_list = ["情報", "数学", "生物", "化学", "物理", "地理総合", "公共", "英コミュ", "論理表現", "現代の国語", "言語文化", "体育"]
+        if len(args) == 2:
+            items = [QuickReplyButton(action = MessageAction(label = subject, text = f'課題編集 {args[1]} {subject}')) for subject in subject_list]
+            reply_message = TextSendMessage(text = language["SUBJECT_SELECTION"][user_lang], quick_reply=QuickReply(items=items))
+        elif len(args) == 3 and args[2] in subject_list:
+            date_list = []
+            for i in range(11):
+                date = datetime.now() + timedelta(i)
+                date_list.append(date.strftime("%m月%d日"))
+            items = [QuickReplyButton(action = MessageAction(label = day, text = f'課題編集 {args[1]} {args[2]} {day}')) for day in date_list]
+            reply_message = TextSendMessage(text = language["DATE_SELECTION"][user_lang], quick_reply=QuickReply(items=items))
+        elif len(args) == 4 and args[2] in subject_list:
+            time_list = ['なし']
+            for i in range(12):
+                time_list.append(f'{i * 2}:00')
+            items = [QuickReplyButton(action = MessageAction(label = time, text = f'課題編集 {args[1]} {args[2]} {args[3]} {time}')) for time in time_list]
+            reply_message = TextSendMessage(text = language["TIME_SELECTION"][user_lang], quick_reply=QuickReply(items=items))
+        elif len(args) == 5 and args[2] in subject_list:
+            time = ' '
+            if not args[4] == 'なし':
+                time = args[4]
+            if Database.is_exist('tasks', 'task', f'(class = "{author[3]}" AND name = "{args[1]}")'):
+                Database.update_data('tasks', 'task', f'SET subject = "{args[2]}", date = "{args[3]}", time = "{time}" WHERE (class = "{author[3]}" AND name = "{args[1]}")')
+                reply_message = TextSendMessage(text = language["UPDATE_TASK"][user_lang].format(args[1], args[2], f'{args[3]} {time}'))
+            else:
+                reply_message = TextSendMessage(text = language["NOT_EXIST"][user_lang])
+        else:
+            reply_message = TextSendMessage(text = language["INVALID_ARGUMENT"][user_lang].format('課題編集 [課題名]'))
+
+    elif message == "課題削除":
+        if Database.is_exist('tasks', 'task', f'(class = "{author[3]}" AND name = "{args[1]}")'):
+            Database.delete_data('tasks', 'task', f'(class = "{author[3]}" AND name = "{args[1]}")')
+            reply_message = TextSendMessage(text = language["DELETE_TASK"][user_lang].format(args[1]))
+        else:
+            reply_message = TextSendMessage(text = language["INVALID_ARGUMENT"][user_lang].format('課題編集 [課題名]'))
+
+    elif message == "告知作成":
+        news_type_list = ["授業変更", "係・委員会", "告知"]
+        if len(args) == 2:
+            items = [QuickReplyButton(action = MessageAction(label = news_type, text = f'告知作成 {args[1]} {news_type}')) for news_type in news_type_list]
+            reply_message = TextSendMessage(text = language["TYPE_SELECTION"][user_lang], quick_reply=QuickReply(items=items))
+        elif len(args) == 3 and args[2] in news_type_list:
+            date_list = []
+            for i in range(11):
+                date = datetime.now() + timedelta(i)
+                date_list.append(date.strftime("%m月%d日"))
+            items = [QuickReplyButton(action = MessageAction(label = day, text = f'告知作成 {args[1]} {args[2]} {day}')) for day in date_list]
+            reply_message = TextSendMessage(text = language["DATE_SELECTION"][user_lang], quick_reply=QuickReply(items=items))
+        elif len(args) == 4 and args[2] in news_type_list:
+            time_list = ['なし']
+            for i in range(12):
+                time_list.append(f'{i * 2}:00')
+            items = [QuickReplyButton(action = MessageAction(label = time, text = f'告知作成 {args[1]} {args[2]} {args[3]} {time}')) for time in time_list]
+            reply_message = TextSendMessage(text = language["TIME_SELECTION"][user_lang], quick_reply=QuickReply(items=items))
+        elif len(args) == 5 and args[2] in news_type_list:
+            time = ' '
+            if not args[4] == 'なし':
+                time = args[4]
+            if not Database.is_exist('news', 'news', f'(class = "{author[3]}" AND name = "{args[1]}" AND type = "{args[2]}" AND date = "{args[3]}" AND time = "{time}")'):
+                Database.insert_data('news', 'news', '?, ?, ?, ?, ?, ?', '', (author[3], args[1], args[2], args[3], time, event.source.user_id))
+                reply_message = TextSendMessage(text = language["CREATION_NEWS"][user_lang].format(args[1], args[2], f'{args[3]} {time}'))
+            else:
+                reply_message = TextSendMessage(text = language["ALREADY_EXIST"][user_lang])
+        else:
+            reply_message = TextSendMessage(text = language["INVALID_ARGUMENT"][user_lang].format('告知作成 [告知名]'))
+
+    elif message == "告知編集":
+        news_type_list = ["授業変更", "係・委員会", "告知"]
+        if len(args) == 2:
+            items = [QuickReplyButton(action = MessageAction(label = news_type, text = f'告知編集 {args[1]} {news_type}')) for news_type in news_type_list]
+            reply_message = TextSendMessage(text = language["TYPE_SELECTION"][user_lang], quick_reply=QuickReply(items=items))
+        elif len(args) == 3 and args[2] in news_type_list:
+            date_list = []
+            for i in range(11):
+                date = datetime.now() + timedelta(i)
+                date_list.append(date.strftime("%m月%d日"))
+            items = [QuickReplyButton(action = MessageAction(label = day, text = f'告知編集 {args[1]} {args[2]} {day}')) for day in date_list]
+            reply_message = TextSendMessage(text = language["DATE_SELECTION"][user_lang], quick_reply=QuickReply(items=items))
+        elif len(args) == 4 and args[2] in news_type_list:
+            time_list = ['なし']
+            for i in range(12):
+                time_list.append(f'{i * 2}:00')
+            items = [QuickReplyButton(action = MessageAction(label = time, text = f'告知編集 {args[1]} {args[2]} {args[3]} {time}')) for time in time_list]
+            reply_message = TextSendMessage(text = language["TIME_SELECTION"][user_lang], quick_reply=QuickReply(items=items))
+        elif len(args) == 5 and args[2] in news_type_list:
+            time = ' '
+            if not args[4] == 'なし':
+                time = args[4]
+            if Database.is_exist('news', 'news', f'(class = "{author[3]}" AND name = "{args[1]}")'):
+                Database.update_data('news', 'news', f'SET type = "{args[2]}", date = "{args[3]}", time = "{time}" WHERE (class = "{author[3]}" AND name = "{args[1]}")')
+                reply_message = TextSendMessage(text = language["UPDATE_NEWS"][user_lang].format(args[1], args[2], f'{args[3]} {time}'))
+            else:
+                reply_message = TextSendMessage(text = language["NOT_EXIST"][user_lang])
+        else:
+            reply_message = TextSendMessage(text = language["INVALID_ARGUMENT"][user_lang].format('告知編集 [告知名]'))
+
+    elif message == "告知削除":
+        if Database.is_exist('news', 'news', f'(class = "{author[3]}" AND name = "{args[1]}")'):
+            Database.delete_data('news', 'news', f'(class = "{author[3]}" AND name = "{args[1]}")')
+            reply_message = TextSendMessage(text = language["DELETE_NEWS"][user_lang].format(args[1]))
+        else:
+            reply_message = TextSendMessage(text = language["INVALID_ARGUMENT"][user_lang].format('告知削除 [告知名]'))
+
+    elif message == '時間割':
+        day_list = ["A月", "A火", "A水", "A木", "A金", "B月", "B火", "B水", "B木", "B金"]
+        items = [QuickReplyButton(action = MessageAction(label = f"{day}", text = f"{day}曜日の時間割")) for day in day_list]
+        if len(args) == 1:
+            items = [QuickReplyButton(action = MessageAction(label = day, text = f'時間割 {day}')) for day in day_list]
+            reply_message = TextSendMessage(text = language["TIMETABLE_DAY"][user_lang], quick_reply=QuickReply(items=items))
+        elif args[1] in day_list:
+            if Database.is_exist('timetable', 'timetable', f'(class = "{author[3]}" AND day = "{event.message.text.split(" ")[1]}")'):
+                timetable = Database.search_data('timetable', 'timetable', f'(class = "{author[3]}" AND day = "{event.message.text.split(" ")[1]}")')
+                reply_message = TextSendMessage(text = language["TIMETABLE"][user_lang].format(timetable[0], timetable[1], timetable[2], timetable[3], timetable[4], timetable[5], timetable[6]))
+            else:
+                reply_message = TextSendMessage(text = language["TIMETABLE_EDIT"][user_lang])
+
+    elif message == 'テスト範囲':
+        subject_list = ["今日", "明日", "数学", "生物", "化学", "物理", "英コミュ", "論理表現", "現代の国語", "言語文化"]
+        if len(args) == 1:
+            items = [QuickReplyButton(action = MessageAction(label = subject, text = f'テスト範囲 {subject}')) for subject in subject_list]
+            reply_message = TextSendMessage(text = language["SUBJECT_SELECTION"][user_lang], quick_reply=QuickReply(items=items))
+        else:
+            nowadays = datetime.now()
+            tomorrow = nowadays + timedelta(1)
+            after = nowadays + timedelta(10)
+            tests = []
+            if args[1] == "今日" or args[1] == "明日":
+                date = nowadays
+                if args[1] == "明日":
+                    date = tomorrow
+                for i in Database.filter_data('tests', 'test', f'(class = "{author[3]}" AND date = "{date.strftime("%m月%d日")}") ORDER BY time, range ASC'):
+                    if i[4] == ' ':
+                        tests.append(f'⧼ {i[2]} ⧽\n«範囲» {i[1]}\n«日時» {i[3]}')
+                    else:
+                        tests.append(f'⧼ {i[2]} ⧽\n«範囲» {i[1]}\n«日時» {i[3]} ～{i[4]}')
+
+                reply_message = TextSendMessage(text = language["TESTS"][user_lang].format(date.strftime("%m月%d日"), '\n\n'.join(tests) or language["NONE"][user_lang]))
+            else:
+                for i in Database.filter_data('tests', 'test', f'(class = "{author[3]}" AND subject = "{args[1]}" AND "{nowadays.strftime("%m月%d日")}" <= date <= "{after.strftime("%m月%d日")}") ORDER BY date, time, range ASC'):
+                    if i[4] == ' ':
+                        tests.append(f'⧼ {i[1]} ⧽\n«日時» {i[3]}')
+                    else:
+                        tests.append(f'⧼ {i[1]} ⧽\n«日時» {i[3]} ～{i[4]}')
+                reply_message = TextSendMessage(text = language["TESTS"][user_lang].format(f'{nowadays.strftime("%m月%d日")} - {after.strftime("%m月%d日")}', '\n\n'.join(tests) or language["NONE"][user_lang]))
+
+    elif message == '課題':
+        nowadays = datetime.now()
+        after = nowadays + timedelta(10)
+        tasks = []
+        for i in Database.filter_data('tasks', 'task', f'(class = "{author[3]}" AND "{nowadays.strftime("%m月%d日")}" <= date <= "{after.strftime("%m月%d日")}") ORDER BY date, time, name ASC'):
+            if i[4] == ' ':
+                tasks.append(f'⧼ {i[1]} ⧽\n«教科» {i[2]}\n«提出日時» {i[3]}')
+            else:
+                tasks.append(f'⧼ {i[1]} ⧽\n«教科» {i[2]}\n«提出日時» {i[3]} ～{i[4]}')
+        reply_message = TextSendMessage(text = language["TASKS"][user_lang].format(f'{nowadays.strftime("%m月%d日")} - {after.strftime("%m月%d日")}', '\n\n'.join(tasks) or language["NONE"][user_lang]))
+
+    elif message == '告知':
+        nowadays = datetime.now()
+        after = nowadays + timedelta(10)
+        news = []
+        for i in Database.filter_data('news', 'news', f'(class = "{author[3]}" AND "{nowadays.strftime("%m月%d日")}" <= date <= "{after.strftime("%m月%d日")}") ORDER BY date, time, name ASC'):
+            if i[4] == ' ':
+                news.append(f'⧼ {i[1]} ⧽\n«種類» {i[2]}\n«日時» {i[3]}')
+            else:
+                news.append(f'⧼ {i[1]} ⧽\n«種類» {i[2]}\n«日時» {i[3]} ～{i[4]}')
+        reply_message = TextSendMessage(text = language["NEWS"][user_lang].format(f'{nowadays.strftime("%m月%d日")} - {after.strftime("%m月%d日")}', '\n\n'.join(news) or language["NONE"][user_lang]))
+
+    elif message == '予定':
+        schedule_list = ['昨日', '今日', '明日']
+        if len(args) == 1:
+            items = [QuickReplyButton(action = MessageAction(label = schedule, text = f'予定 {schedule}')) for schedule in schedule_list]
+            reply_message = TextSendMessage(text = '表示する種類を選択してください', quick_reply=QuickReply(items=items))
+        else:
+            nowadays = datetime.now()
+            yesterday = nowadays - timedelta(1)
+            tomorrow = nowadays + timedelta(1)
+            if args[1] == '昨日':
+                date = yesterday
+            elif args[1] == '今日':
+                date = nowadays
+            elif args[1] == '明日':
+                date = tomorrow
+            tasks = []
+            news = []
+
+            for i in Database.filter_data('tasks', 'task', f'(class = "{author[3]}" AND date = "{date.strftime("%m月%d日")}")'):
+                if i[4] == ' ':
+                    tasks.append(f'«{i[2]}» {i[1]} {i[3]}')
+                else:
+                    tasks.append(f'«{i[2]}» {i[1]} {i[3]} ～{i[4]}')
+            for i in Database.filter_data('news', 'news', f'(class = "{author[3]}" AND date = "{date.strftime("%m月%d日")}")'):
+                if i[4] == ' ':
+                    news.append(f'«{i[2]}» {i[1]} {i[3]}')
+                else:
+                    news.append(f'«{i[2]}» {i[1]} {i[3]} ～{i[4]}')
+
+            reply_message = TextSendMessage(text = language["SCHEDULE"][user_lang].format(f'{event.message.text.split(" ")[1]}({date.strftime("%m月%d日")})', '\n'.join(tasks) or language["NONE"][user_lang], '\n'.join(news) or language["NONE"][user_lang]))
+
+    else:
+        reply_message = TextSendMessage(text = event.message.text)
+
+    line_bot_api.reply_message(
+        event.reply_token,
+        reply_message
+    )
+
+@handler.add(MessageEvent, message=(ImageMessage, AudioMessage))
+def handle_image_audio_message(event):
+    content = line_bot_api.get_message_content(event.message.id)
+    if not os.path.isdir(f'./storage/{event.source.user_id}'):
+        os.makedirs(f'./storage/{event.source.user_id}')
+    with open(Path(f'./storage/{event.source.user_id}/{event.message.id}.jpg'), 'wb') as f:
+        for c in content.iter_content():
+            f.write(c)
 
 if __name__ == "__main__":
-    app.run()
+    #Database
+    Database.create_table('users', 'user', 'id primary key, display_name, avatar, class, createdAt none, updatedAt none, banned, language, notice')
+    Database.create_table('timetable', 'timetable', 'class, day, first, second, third, fourth, fifth')
+    Database.create_table('messages', 'message', 'message_id, user_id, username, content, date')
+    Database.create_table('tests', 'test', 'class, range, subject, date, time, author')
+    Database.create_table('tasks', 'task', 'class, name, subject, date, time, author')
+    Database.create_table('news', 'news', 'class, name, type, date, time, author')
+    Database.create_table('temp', 'temp', 'id primary key, data')
+
+    port = int(os.getenv("PORT", 8000))
+    app.run(host="0.0.0.0", port=port)

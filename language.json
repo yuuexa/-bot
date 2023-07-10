@@ -1,0 +1,126 @@
+{
+    "INVALID_ARGUMENT": {
+        "日本語": "入力の仕方が違います\n正しい入力方法: {}",
+        "English": "The input is different\nCorrect input method: {}"
+    },
+    "NOT_EXIST": {
+        "日本語": "そのデータは存在しません",
+        "English": "The data does not exist"
+    },
+    "ALREADY_EXIST": {
+        "日本語": "既に同一のデータが存在しています",
+        "English": "Identical data already exist"
+    },
+    "NONE": {
+        "日本語": "なし",
+        "English": "None"
+    },
+    "REGISTRATION_INFORMATION": {
+        "日本語": "➖ {} の登録情報 ➖\n⦉ ID ⦊ {}\n⦉ クラス ⦊ {}\n⦉ 表示言語 ⦊ {}\n⦉ 作成日 ⦊ {}",
+        "English": "➖ {} Registration information ➖\n⦉ ID ⦊ {}\n⦉ Class ⦊ {}\n⦉ Display Language ⦊ {}\n⦉ Creation Date ⦊ {}"
+    },
+    "CLASS_SELECTION": {
+        "日本語": "クラスを選択してください",
+        "English": "Select the class"
+    },
+    "LANGUAGE_SELECTION": {
+        "日本語": "表示言語を選択してください",
+        "English": "Select the display language"
+    },
+    "NOTICE_SELECTION": {
+        "日本語": "通知の可否を選択してください",
+        "English": "Select whether you would like to be notified"
+    },
+    "LANGUAGE_SETTING": {
+        "日本語": "✅ 設定完了 ✅\n表示言語を {} に設定しました",
+        "English": "✅ Settings completed ✅\nDisplay language set to {}"
+    },
+    "CLASS_SETTING": {
+        "日本語": "✅ 設定完了 ✅\nクラスを {} に設定しました",
+        "English": "✅ Settings completed ✅\nClass set to {}"
+    },
+    "NOTICE_SETTING": {
+        "日本語": "✅ 設定完了 ✅\n通知を {} に設定しました",
+        "English": "✅ Settings completed ✅\nNotification set to {}"
+    },
+    "TIMETABLE_DAY": {
+        "日本語": "曜日を選択してください",
+        "English": "Select the day of the week"
+    },
+    "TIMETABLE": {
+        "日本語": "➖{}組 {} の時間割 ➖\n① {}\n② {}\n③ {}\n④ {}\n⑤ {}",
+        "English": "➖{}Class Timetable for {} ➖\n① {}\n② {}\n③ {}\n④ {}\n⑤ {}"
+    },
+    "TIMETABLE_EDIT": {
+        "日本語": "時間割の写真を送信してくだされば、運営が追加します",
+        "English": "I'll add the timetable for you if you send me your photo of timetable"
+    },
+    "SCHEDULE": {
+        "日本語": "➖ {} の予定 ➖\n―⦗ 課題 ⦘―\n{}\n\n―⦗ 告知 ⦘―\n{}",
+        "English": "➖ Schedule of {} ➖\n―⦗ TASK ⦘―\n{}\n\n―⦗ NEWS ⦘―\n{}"
+    },
+    "SUBJECT_SELECTION": {
+        "日本語": "教科を選択してください",
+        "English": "Select the subject"
+    },
+    "DATE_SELECTION": {
+        "日本語": "日付を選択してください",
+        "English": "Select the date"
+    },
+    "TIME_SELECTION": {
+        "日本語": "時間を選択してください",
+        "English": "Select the time"
+    },
+    "TYPE_SELECTION": {
+        "日本語": "種類を選択してください",
+        "English": "Select the type"
+    },
+    "CREATION_TEST": {
+        "日本語":"✅ テストを作成しました\n⦉ 範囲 ⦊ {}\n⦉ 教科 ⦊ {}\n⦉ 日時 ⦊ {}",
+        "English": "✅ Created a test\n⦉ Range ⦊ {}\n⦉ Subject ⦊ {}\n⦉ Date ⦊ {}"
+    },
+    "UPDATE_TEST": {
+        "日本語":"✅ テストを更新しました\n⦉ 範囲 ⦊ {}\n⦉ 教科 ⦊ {}\n⦉ 日時 ⦊ {}",
+        "English": "✅ Updated the test\n⦉ Range ⦊ {}\n⦉ Subject ⦊ {}\n⦉ Date ⦊ {}"
+    },
+    "DELETE_TEST": {
+        "日本語":"✅ テストを削除しました\n⦉ 範囲 ⦊ {}",
+        "English": "✅ Deleted the test\n⦉ Range ⦊ {}"
+    },
+    "CREATION_TASK": {
+        "日本語":"✅ 課題を作成しました\n⦉ 課題名 ⦊ {}\n⦉ 教科 ⦊ {}\n⦉ 提出日時 ⦊ {}",
+        "English": "✅ Created a task\n⦉ Task name ⦊ {}\n⦉ Subject ⦊ {}\n⦉ Deadline ⦊ {}"
+    },
+    "UPDATE_TASK": {
+        "日本語":"✅ 課題を更新しました\n⦉ 課題名 ⦊ {}\n⦉ 教科 ⦊ {}\n⦉ 提出日時 ⦊ {}",
+        "English": "✅ Updated the task\n⦉ Task name ⦊ {}\n⦉ Subject ⦊ {}\n⦉ Deadline ⦊ {}"
+    },
+    "DELETE_TASK": {
+        "日本語":"✅ 課題を削除しました\n⦉ 課題名 ⦊ {}",
+        "English": "✅ Deleted the task\n⦉ Task name ⦊ {}"
+    },
+    "CREATION_NEWS": {
+        "日本語":"✅ 告知を作成しました\n⦉ 告知名 ⦊ {}\n⦉ 種類 ⦊ {}\n⦉ 日時 ⦊ {}",
+        "English": "✅ Created a news\n⦉ News name ⦊ {}\n⦉ Type ⦊ {}\n⦉ Date ⦊ {}"
+    },
+    "UPDATE_NEWS": {
+        "日本語":"✅ 告知を更新しました\n⦉ 告知名 ⦊ {}\n⦉ 種類 ⦊ {}\n⦉ 日時 ⦊ {}",
+        "English": "✅ Updated the news\n⦉ News name ⦊ {}\n⦉ Type ⦊ {}\n⦉ Date ⦊ {}"
+    },
+    "DELETE_NEWS": {
+        "日本語":"✅ 告知を削除しました\n⦉ 告知名 ⦊ {}",
+        "English": "✅ Deleted the news\n⦉ News name ⦊ {}"
+    },
+    "TESTS": {
+        "日本語": "➖ {} の範囲 ➖\n{}",
+        "English": "➖ Test range for {} ➖\n{}"
+    },
+    "TASKS": {
+        "日本語": "➖ {} の課題 ➖\n{}",
+        "English": "➖ Tasks for {} ➖\n{}"
+    },
+    "NEWS": {
+        "日本語": "➖ {} の告知 ➖\n{}",
+        "English": "➖ Notification for {} ➖\n{}"
+    }
+}
