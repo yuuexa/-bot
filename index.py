@@ -8,8 +8,10 @@ from pathlib import Path
 #自作クラスの読み込み
 import Database
 import Utils
+import ImageData
 Database = Database.Database()
 Utils = Utils.Utils()
+ImageData = ImageData.ImageData()
 
 from linebot import (
     LineBotApi, WebhookHandler
@@ -51,6 +53,7 @@ def handle_message(event):
     profile = line_bot_api.get_profile(event.source.user_id)
     if not Database.is_exist('users', 'user', f'id = "{event.source.user_id}"'):
         Database.insert_data('users', 'user', '?, ?, ?, ?, ?, ?, ?, ?, ?', 'ON CONFLICT(id) DO NOTHING', (event.source.user_id, profile.display_name, profile.picture_url, 'G', datetime.now(), datetime.now(), 0, "日本語", 0))
+    event.message.text = event.message.text.replace('　', ' ')
     message = event.message.text.split(' ')[0] or event.message.text
     args = event.message.text.split(' ')
 
@@ -115,16 +118,13 @@ def handle_message(event):
                 reply_message = TextSendMessage(text = language["NOT_EXIST"][user_lang])
 
     elif message == "時間割設定":
-        if Utils.isAdmin(event.source.user_id):
-            day_list = ["A月", "A火", "A水", "A木", "A金", "B月", "B火", "B水", "B木", "B金"]
-            if args[2] in day_list and len(args) == 8:
-                if not Database.is_exist('timetable', 'timetable', f'(class = "{args[1]}" AND day = "{args[2]}")'):
-                    Database.insert_data('timetable', 'timetable', '?, ?, ?, ?, ?, ?, ?', '', (args[1], args[2], args[3], args[4], args[5], args[6], args[7]))
-                    reply_message = TextSendMessage(text = language["TIMETABLE"][user_lang].format(args[1], args[2], args[3], args[4], args[5], args[6], args[7]))
-            else:
-                reply_message = TextSendMessage(text = language["INVALID_ARGUMENT"][user_lang].format('時間割設定 [クラス] [曜日] [1時間目] ...'))
+        day_list = ["A月", "A火", "A水", "A木", "A金", "B月", "B火", "B水", "B木", "B金"]
+        if args[2] in day_list and len(args) == 8:
+            if not Database.is_exist('timetable', 'timetable', f'(class = "{args[1]}" AND day = "{args[2]}")'):
+                Database.insert_data('timetable', 'timetable', '?, ?, ?, ?, ?, ?, ?', '', (args[1], args[2], args[3], args[4], args[5], args[6], args[7]))
+                reply_message = TextSendMessage(text = language["TIMETABLE"][user_lang].format(args[1], args[2], args[3], args[4], args[5], args[6], args[7]))
         else:
-            reply_message = TextSendMessage(text = language["TIMETABLE_EDIT"][user_lang])
+            reply_message = TextSendMessage(text = language["INVALID_ARGUMENT"][user_lang].format('時間割設定 [クラス] [曜日] [1時間目] ...'))
 
     elif message == "テスト作成":
         subject_list = ["数学", "生物", "化学", "物理", "英コミュ", "論理表現", "現代の国語", "言語文化"]
@@ -411,14 +411,14 @@ def handle_message(event):
 
             for i in Database.filter_data('tasks', 'task', f'(class = "{author[3]}" AND date = "{date.strftime("%m月%d日")}")'):
                 if i[4] == ' ':
-                    tasks.append(f'«{i[2]}» {i[1]} {i[3]}')
+                    tasks.append(f'«{i[2]}» {i[1]}')
                 else:
-                    tasks.append(f'«{i[2]}» {i[1]} {i[3]} ～{i[4]}')
+                    tasks.append(f'«{i[2]}» {i[1]} ～{i[4]}')
             for i in Database.filter_data('news', 'news', f'(class = "{author[3]}" AND date = "{date.strftime("%m月%d日")}")'):
                 if i[4] == ' ':
-                    news.append(f'«{i[2]}» {i[1]} {i[3]}')
+                    news.append(f'«{i[2]}» {i[1]}')
                 else:
-                    news.append(f'«{i[2]}» {i[1]} {i[3]} ～{i[4]}')
+                    news.append(f'«{i[2]}» {i[1]} ～{i[4]}')
 
             reply_message = TextSendMessage(text = language["SCHEDULE"][user_lang].format(f'{event.message.text.split(" ")[1]}({date.strftime("%m月%d日")})', '\n'.join(tasks) or language["NONE"][user_lang], '\n'.join(news) or language["NONE"][user_lang]))
 
@@ -438,6 +438,10 @@ def handle_image_audio_message(event):
     with open(Path(f'./storage/{event.source.user_id}/{event.message.id}.jpg'), 'wb') as f:
         for c in content.iter_content():
             f.write(c)
+    line_bot_api.reply_message(
+        event.reply_token,
+        TextSendMessage(text = str(ImageData.image_to_text(f'storage/{event.source.user_id}/{event.message.id}.jpg', 'jpn')))
+    )
 
 if __name__ == "__main__":
     #Database
