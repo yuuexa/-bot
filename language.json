@@ -11,13 +11,29 @@
         "日本語": "既に同一のデータが存在しています",
         "English": "Identical data already exist"
     },
+    "UNEDITABLE": {
+        "日本語": "このデータを編集できるのは、このデータの作成者または編集者以上の役割を持つユーザーのみです",
+        "English": "Only users in the role of creator of this or editor or higher of this data may edit it"
+    },
     "NONE": {
         "日本語": "なし",
         "English": "None"
     },
+    "GENERAL": {
+        "日本語": "一般",
+        "English": "General"
+    },
+    "EDITOR": {
+        "日本語": "編集者",
+        "English": "Editor"
+    },
+    "ADMINISTRATOR": {
+        "日本語": "管理者",
+        "English": "Administrator"
+    },
     "REGISTRATION_INFORMATION": {
-        "日本語": "➖ {} の登録情報 ➖\n⦉ ID ⦊ {}\n⦉ クラス ⦊ {}\n⦉ 表示言語 ⦊ {}\n⦉ 作成日 ⦊ {}",
-        "English": "➖ {} Registration information ➖\n⦉ ID ⦊ {}\n⦉ Class ⦊ {}\n⦉ Display Language ⦊ {}\n⦉ Creation Date ⦊ {}"
+        "日本語": "➖ {} の登録情報 ➖\n⦉ ID ⦊ {}\n⦉ クラス ⦊ {}\n⦉ 表示言語 ⦊ {}\n⦉ 作成日 ⦊ {}\n⦉ 役割 ⦊ {}",
+        "English": "➖ {} Registration information ➖\n⦉ ID ⦊ {}\n⦉ Class ⦊ {}\n⦉ Display Language ⦊ {}\n⦉ Creation Date ⦊ {}\n⦉ Role ⦊ {}"
     },
     "CLASS_SELECTION": {
         "日本語": "クラスを選択してください",
@@ -47,17 +63,41 @@
         "日本語": "曜日を選択してください",
         "English": "Select the day of the week"
     },
+    "TIMETABLE_EDITING": {
+        "日本語": "✅ 設定完了 ✅\n{}組{}の時間割を以下のように設定しました\n① {}\n② {}\n③ {}\n④ {}\n⑤ {}",
+        "English": "✅ Settings completed ✅The timetable for class {} {} is set as follows\n① {}\n② {}\n③ {}\n④ {}\n⑤ {}"
+    },
     "TIMETABLE": {
         "日本語": "➖{}組 {} の時間割 ➖\n① {}\n② {}\n③ {}\n④ {}\n⑤ {}",
-        "English": "➖{}Class Timetable for {} ➖\n① {}\n② {}\n③ {}\n④ {}\n⑤ {}"
+        "English": "➖{} Class Timetable for {} ➖\n① {}\n② {}\n③ {}\n④ {}\n⑤ {}"
     },
     "TIMETABLE_EDIT": {
         "日本語": "時間割の写真を送信してくだされば、運営が追加します",
         "English": "I'll add the timetable for you if you send me your photo of timetable"
     },
+    "TIMETABLE_PERIOD": {
+        "日本語": "{}時間目",
+        "English": "in the {} period"
+    },
+    "TIMETABLE_SEARCH": {
+        "日本語": "➖ {} のある曜日 ➖\n{}",
+        "English": "➖ Days of week with {} ➖\n{}"
+    },
+    "ROLE_EDIT": {
+        "日本語": "✅ 設定完了 ✅\n{} の役割を {} に設定しました",
+        "English": "✅ Settings completed ✅\nThe role of {} is set to {}"
+    },
+    "ROLE_EDITED": {
+        "日本語": "✅ 役割が編集されました\n現在のあなたの役割は {} です",
+        "English": "✅ Your role has been edited\nYour current role is {}"
+    },
     "SCHEDULE": {
-        "日本語": "➖ {} の予定 ➖\n―⦗ 課題 ⦘―\n{}\n\n―⦗ 告知 ⦘―\n{}",
-        "English": "➖ Schedule of {} ➖\n―⦗ TASK ⦘―\n{}\n\n―⦗ NEWS ⦘―\n{}"
+        "日本語": "➖{} の予定\n―⦗ 課題 ⦘―\n{}\n\n―⦗ テスト ⦘―\n{}\n\n―⦗ 告知 ⦘―\n{}",
+        "English": "➖ Schedule of {} ➖\n―⦗ TASK ⦘―\n{}\n\n―⦗ Test ⦘―\n{}\n\n―⦗ NEWS ⦘―\n{}"
+    },
+    "SCHEDULE_FULL": {
+        "日本語": "➖{} の予定\n―⦗ 時間割 ⦘―\n① {}\n② {}\n③ {}\n④ {}\n⑤ {}\n\n―⦗ テスト ⦘―\n{}\n\n―⦗ 課題 ⦘―\n{}\n\n―⦗ 告知 ⦘―\n{}",
+        "English": "➖ Schedule of {} ➖\n―⦗ TASK ⦘―\n{}\n\n―⦗ Test ⦘―\n{}\n\n―⦗ NEWS ⦘―\n{}"
     },
     "SUBJECT_SELECTION": {
         "日本語": "教科を選択してください",
@@ -74,6 +114,10 @@
     "TYPE_SELECTION": {
         "日本語": "種類を選択してください",
         "English": "Select the type"
+    },
+    "ROLE_SELECTION": {
+        "日本語": "役割を選択してください",
+        "English": "Select the role"
     },
     "CREATION_TEST": {
         "日本語":"✅ テストを作成しました\n⦉ 範囲 ⦊ {}\n⦉ 教科 ⦊ {}\n⦉ 日時 ⦊ {}",
@@ -103,6 +147,10 @@
         "日本語":"✅ 告知を作成しました\n⦉ 告知名 ⦊ {}\n⦉ 種類 ⦊ {}\n⦉ 日時 ⦊ {}",
         "English": "✅ Created a news\n⦉ News name ⦊ {}\n⦉ Type ⦊ {}\n⦉ Date ⦊ {}"
     },
+    "ADD_ADMINISTRATOR": {
+        "日本語":"✅ 管理者を追加しました\n〔 ID 〕 {}\n〔 ユーザー名 〕 {}",
+        "English": "✅ Added administrator \n〔 ID 〕 {}\n〔 Username 〕 {}"
+    },
     "UPDATE_NEWS": {
         "日本語":"✅ 告知を更新しました\n⦉ 告知名 ⦊ {}\n⦉ 種類 ⦊ {}\n⦉ 日時 ⦊ {}",
         "English": "✅ Updated the news\n⦉ News name ⦊ {}\n⦉ Type ⦊ {}\n⦉ Date ⦊ {}"
@@ -122,5 +170,29 @@
     "NEWS": {
         "日本語": "➖ {} の告知 ➖\n{}",
         "English": "➖ Notification for {} ➖\n{}"
+    },
+    "HELP": {
+        "日本語": "➖ ヘルプメニュー ➖\n－課題\n 課題作成 <課題名>\n 課題編集 <課題名>\n 課題削除 <課題名>\n－告知\n 告知作成 <告知>\n 告知編集 <告知>\n 告知削除 <告知>\n－テスト範囲\n テスト作成 <範囲>\n テスト編集 <範囲>\n テスト削除 <範囲>\n－その他\n 教科検索 <教科名>\n 時間割設定 <クラス> <曜日> <時間割>",
+        "English": "➖ Help Menu ➖\n-課題\n 課題作成 <assignment title>\n 課題編集 <assignment title>\n 課題削除 <assignment title>\n-告知\n 告知作成 <announcement>\n 告知編集 <announcement>\n 告知削除 <announcement>\n-テスト範囲\n テスト作成 <range>\n テスト編集 <range>\n テスト削除 <range>\n-その他\n 教科検索 <subject name>\n 時間割設定 <class> <day> <times>"
+    },
+    "BAN_USER": {
+        "日本語": "✅ {} の利用を禁止しました",
+        "English": "✅ {} was banned"
+    },
+    "UNBAN_USER": {
+        "日本語": "✅ {} の利用禁止を解除しました",
+        "English": "✅ {} was unbanned"
+    },
+    "BANNED": {
+        "日本語": "あなたは現在利用を禁止されています",
+        "English": "You are currently banned"
+    },
+    "USER_BANNED": {
+        "日本語": "そのユーザーは現在利用を禁止されています",
+        "English": "That user is currently banned"
+    },
+    "ADMIN_COMMAND": {
+        "日本語": "このコマンドは管理者のみが使用できます",
+        "English": "This command can be user by only administrator"
     }
 }
