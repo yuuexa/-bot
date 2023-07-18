@@ -437,13 +437,20 @@ def handle_message(event):
                 reply_message = TextSendMessage(text = language["TIMETABLE_SEARCH"][user_lang].format(args[1], '\n'.join(schedule) or language["NONE"][user_lang]))
 
         elif message == '時間割':
-            day_list = ["A月", "A火", "A水", "A木", "A金", "B月", "B火", "B水", "B木", "B金"]
+            day_list = ["今日", "明日", "A月", "A火", "A水", "A木", "A金", "B月", "B火", "B水", "B木", "B金"]
             items = [QuickReplyButton(action = MessageAction(label = f"{day}", text = f"{day}曜日の時間割")) for day in day_list]
             if len(args) == 1:
                 items = [QuickReplyButton(action = MessageAction(label = day, text = f'時間割 {day}')) for day in day_list]
                 reply_message = TextSendMessage(text = language["TIMETABLE_DAY"][user_lang], quick_reply=QuickReply(items=items))
             elif args[1] in day_list:
-                if Database.is_exist('timetable', 'timetable', f'(class = "{author[3]}" AND day = "{event.message.text.split(" ")[1]}")'):
+                if args[1] == '今日' or args[1] == '明日':
+                    date = datetime.now()
+                    if args[1] == '明日':
+                        date = datetime.now() + timedelta(1)
+                    if Database.is_exist('schedule', 'schedule', f'(class = "{author[3]}" AND day = "{date.strftime("%m月%d日")}")'):
+                        timetable = Database.search_data('schedule', 'schedule', f'(class = "{author[3]}" AND day = "{date.strftime("%m月%d日")}")')
+                        reply_message = TextSendMessage(text = language["TIMETABLE"][user_lang].format(author[3], f'{args[1]}({date.strftime("%m月%d日")})', timetable[2], timetable[3], timetable[4], timetable[5], timetable[6]))
+                elif Database.is_exist('timetable', 'timetable', f'(class = "{author[3]}" AND day = "{event.message.text.split(" ")[1]}")'):
                     timetable = Database.search_data('timetable', 'timetable', f'(class = "{author[3]}" AND day = "{event.message.text.split(" ")[1]}")')
                     reply_message = TextSendMessage(text = language["TIMETABLE"][user_lang].format(timetable[0], timetable[1], timetable[2], timetable[3], timetable[4], timetable[5], timetable[6]))
                 else:

@@ -45,15 +45,17 @@ def tomorrow():
     for user in Database.fetch_all('users', 'user'):
         if Database.is_exist('schedule', 'schedule', f'(class = "{user[3]}" AND day = "{(datetime.now() + timedelta(1)).strftime("%m月%d日")}")'):
             notice = Database.search_data('schedule', 'schedule', f'(class = "{user[3]}" AND day = "{(datetime.now() + timedelta(1)).strftime("%m月%d日")}")')
-            if (user[8] == '1' and not notice[10] == '0'):
+            if (user[8] == '1') and (notice[10] == '1'):
                 line_bot_api.push_message(user[0], messages = plan(user[3], '明日', user[7]))
+                print(f'{user[1]} に TOMORROW を送信')
 
 def today():
     for user in Database.fetch_all('users', 'user'):
         if Database.is_exist('schedule', 'schedule', f'(class = "{user[3]}" AND day = "{datetime.now().strftime("%m月%d日")}")'):
             notice = Database.search_data('schedule', 'schedule', f'(class = "{user[3]}" AND day = "{datetime.now().strftime("%m月%d日")}")')
-            if (user[8] == '1' and not notice[10] == '0'):
+            if (user[8] == '1') and (notice[10] == '1'):
                 line_bot_api.push_message(user[0], messages = plan(user[3], '今日', user[7]))
+                print(f'{user[1]} に TODAY を送信')
 
 def send_message():
     weeks = [ 'A', 'B', '作成しない' ]
@@ -62,7 +64,7 @@ def send_message():
         line_bot_api.push_message(user[0], messages = TextSendMessage(text = '1か月分の時間割を作成します。\n今週はA・Bどちらの週ですか？', quick_reply=QuickReply(items=items)))
 
 schedule.every().days.at("07:00").do(today)
-schedule.every().days.at("20:00").do(tomorrow)
+schedule.every().days.at("21:00").do(tomorrow)
 schedule.every(1).weeks.do(send_message)
 
 while True:
